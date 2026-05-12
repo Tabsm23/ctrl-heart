@@ -768,16 +768,18 @@ function VaultScreen({
   modal,
   setModal,
 }) {
-  const [localText, setLocalText] = useState("");
+  const draftRef = useRef(null);
+  const [composeKey, setComposeKey] = useState(0);
   const [composing, setComposing] = useState(false);
   const [vaultSaveBusy, setVaultSaveBusy] = useState(false);
   const [vaultSaveError, setVaultSaveError] = useState(null);
   const [vaultBurnBusy, setVaultBurnBusy] = useState(false);
+
   if (viewMsg) {
     return (
       <div className="screen">
         <div style={{ padding: "56px 24px 0" }}>
-          <button onClick={() => setViewMsg(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-3)", display: "flex", alignItems: "center", gap: 6, marginBottom: 32, padding: 0 }}>
+          <button type="button" onClick={() => setViewMsg(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-3)", display: "flex", alignItems: "center", gap: 6, marginBottom: 32, padding: 0 }}>
             <Icons.ArrowLeft /><span style={{ fontSize: 14 }}>Back to vault</span>
           </button>
           <div style={{ fontSize: 12, color: "var(--ink-4)", marginBottom: 20 }}>{viewMsg.date}</div>
@@ -785,8 +787,8 @@ function VaultScreen({
             {viewMsg.body}
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <button className="btn-secondary" onClick={() => setViewMsg(null)}>Keep it</button>
-            <button className="btn-danger" onClick={() => setModal({ type: "burn", id: viewMsg.id })}>
+            <button type="button" className="btn-secondary" onClick={() => setViewMsg(null)}>Keep it</button>
+            <button type="button" className="btn-danger" onClick={() => setModal({ type: "burn", id: viewMsg.id })}>
               <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                 <Icons.Flame /> Burn it
               </span>
@@ -800,7 +802,7 @@ function VaultScreen({
               <p style={{ color: "var(--ink-3)", fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
                 This is permanent. The message will be gone.
               </p>
-              <button className="btn-danger" style={{ marginBottom: 10 }} disabled={vaultBurnBusy} onClick={async () => {
+              <button type="button" className="btn-danger" style={{ marginBottom: 10 }} disabled={vaultBurnBusy} onClick={async () => {
                 const id = modal.id;
                 setVaultBurnBusy(true);
                 try {
@@ -822,7 +824,7 @@ function VaultScreen({
                   setVaultBurnBusy(false);
                 }
               }}>{vaultBurnBusy ? "Removing…" : "Yes, burn it"}</button>
-              <button className="btn-ghost" style={{ width: "100%", textAlign: "center" }} onClick={() => setModal(null)}>Keep it</button>
+              <button type="button" className="btn-ghost" style={{ width: "100%", textAlign: "center" }} onClick={() => setModal(null)}>Keep it</button>
             </div>
           </div>
         )}
@@ -833,18 +835,25 @@ function VaultScreen({
     return (
       <div className="screen">
         <div style={{ padding: "56px 24px 0" }}>
-          <button onClick={() => { setVaultSaveError(null); setLocalText(""); setComposing(false); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-3)", display: "flex", alignItems: "center", gap: 6, marginBottom: 32, padding: 0 }}>
+          <button type="button" onClick={() => { setVaultSaveError(null); setComposing(false); }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-3)", display: "flex", alignItems: "center", gap: 6, marginBottom: 32, padding: 0 }}>
             <Icons.ArrowLeft /><span style={{ fontSize: 14 }}>Back</span>
           </button>
           <h2 className="display" style={{ fontSize: 26, marginBottom: 8, lineHeight: 1.2 }}>Say what you need to say.</h2>
           <p style={{ color: "var(--ink-4)", fontSize: 14, marginBottom: 24 }}>It won't be sent. It just needs to exist.</p>
-          <textarea className="input" rows={12} placeholder="Dear them..." value={localText}
-            onChange={e => setLocalText(e.target.value)} style={{ marginBottom: 16 }} />
+          <textarea
+            key={composeKey}
+            ref={draftRef}
+            className="input"
+            rows={12}
+            placeholder="Dear them..."
+            defaultValue=""
+            style={{ marginBottom: 16 }}
+          />
           {vaultSaveError ? (
             <p style={{ fontSize: 13, color: "#b42318", marginBottom: 12 }}>{vaultSaveError}</p>
           ) : null}
-          <button className="btn-primary" disabled={vaultSaveBusy} onClick={async () => {
-            const body = localText.trim();
+          <button type="button" className="btn-primary" disabled={vaultSaveBusy} onClick={async () => {
+            const body = (draftRef.current?.value ?? "").trim();
             if (!body) return;
             setVaultSaveError(null);
             setVaultSaveBusy(true);
@@ -866,7 +875,7 @@ function VaultScreen({
                 body: data.body,
                 date: formatVaultMessageDate(data.created_at),
               }, ...m]);
-              setLocalText("");
+              if (draftRef.current) draftRef.current.value = "";
               setComposing(false);
             } catch (err) {
               setVaultSaveError(err?.message ?? "Could not save.");
@@ -885,8 +894,8 @@ function VaultScreen({
           <div className="label">Private</div>
           <h1>Unsent Messages</h1>
         </div>
-        <button className="btn-primary" style={{ width: "auto", padding: "10px 16px", fontSize: 13, borderRadius: 10, marginTop: 20 }}
-          onClick={() => { setVaultSaveError(null); setLocalText(""); setComposing(true); }}>+ Write</button>
+        <button type="button" className="btn-primary" style={{ width: "auto", padding: "10px 16px", fontSize: 13, borderRadius: 10, marginTop: 20 }}
+          onClick={() => { setVaultSaveError(null); setComposeKey(k => k + 1); setComposing(true); }}>+ Write</button>
       </div>
       <div className="scroll-list">
         {messagesLoading && (
@@ -1985,7 +1994,7 @@ export default function CtrlHeart() {
           {moreOpen && <MoreMenu />}
           <nav className="nav">
             {NAV_TABS.map(t => (
-              <button key={t.id} className={`nav-item ${appTab === t.id ? "active" : ""}`} onClick={() => setAppTab(t.id)}>
+              <button key={t.id} type="button" className={`nav-item ${appTab === t.id ? "active" : ""}`} onClick={() => setAppTab(t.id)}>
                 {t.icon}<span>{t.label}</span>
               </button>
             ))}
